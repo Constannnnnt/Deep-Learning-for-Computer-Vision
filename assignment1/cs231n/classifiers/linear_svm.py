@@ -96,8 +96,7 @@ def svm_loss_vectorized(W, X, y, reg):
   dw = np.zeros(margin.shape)
   dw[margin > 0] = 1
   # for each traing sample, we need to know who many times it adds/subtracts X[i]
-  count = np.sum(dw, axis = 1)
-  dw[np.arange(X.shape[0]), y] -= count
+  dw[np.arange(X.shape[0]), y] -= np.sum(dw, axis = 1)
   dW = np.dot(X.T, dw) / X.shape[0] + reg * W
 
   #############################################################################
