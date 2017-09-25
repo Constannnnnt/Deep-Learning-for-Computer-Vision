@@ -1,5 +1,6 @@
 # Deep-Learning-for-Computer-Vision
-Deep Learning for Computer Vision, COMP4901J @ HKUST
+Deep Learning for Computer Vision, COMP4901J @ HKUST.
+This is actually an imitation course as CS231n @ Stanford. Therefore, the lecture notes and assignments are the same except the last assignment.
 
 This repository may consist of four assignments for COMP4901J.
 
