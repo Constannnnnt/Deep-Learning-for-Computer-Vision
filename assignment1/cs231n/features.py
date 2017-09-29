@@ -1,9 +1,9 @@
 from __future__ import print_function
 from past.builtins import xrange
-
 import matplotlib
 import numpy as np
 from scipy.ndimage import uniform_filter
+from scipy.ndimage.filters import gaussian_filter
 
 
 def extract_features(imgs, feature_fns, verbose=False):
@@ -147,5 +147,28 @@ def color_histogram_hsv(im, nbin=10, xmin=0, xmax=255, normalized=True):
   # return histogram
   return imhist
 
+def gaussian_laplace_feature(im, i = 1, j = 3,order = 0):
+  """
+  Compute the difference of gaussian_laplace feature for an image
 
-pass
+        Uses scipy.ndimage.filters.gaussian_filter;
+      Parameters:
+        im : an input grayscale or rgb image
+        i  : size of the standard deviation of the first gaussian_filter
+        j  : size of the standard deviation of the second gaussian_filter
+
+      Returns:
+        difference after gaussian_filter
+  """
+  if i == j:
+      raise ValueError("i=%d must not be equal to j=%d" % (i,j))
+
+  if im.ndim == 3:
+      image = rgb2gray(im)
+  else:
+      image = np.atleast_2d(im)
+
+  image_gaussian_i = gaussian_filter(image, sigma=i)
+  image_gaussian_j = gaussian_filter(image, sigma=j)
+  
+  return (np.abs(image_gaussian_i - image_gaussian_j)/np.max(image_gaussian_i - image_gaussian_j)).ravel()
