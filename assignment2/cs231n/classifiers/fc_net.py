@@ -180,14 +180,12 @@ class FullyConnectedNet(object):
         # beta2, etc. Scale parameters should be initialized to one and shift      #
         # parameters should be initialized to zero.                                #
         ############################################################################
-        self.params['W1'] = weight_scale * np.random.rand(input_dim, hidden_dims[0])
-        self.params['b1'] = np.zeros(hidden_dims[0])
+        layer_dim = input_dim
         for i in range(len(hidden_dims)):
-            if i == 0:
-                continue
-            self.params['W' + str((i+1))] = weight_scale * np.random.rand(hidden_dims[i-1], hidden_dims[i])
+            self.params['W' + str((i+1))] = weight_scale * np.random.randn(layer_dim, hidden_dims[i])
             self.params['b' + str((i+1))] = np.zeros(hidden_dims[i])
-        self.params['W' + str((len(hidden_dims) + 1))] = weight_scale * np.random.rand(hidden_dims[len(hidden_dims) - 1], num_classes)
+            layer_dim = hidden_dims[i]
+        self.params['W' + str((len(hidden_dims) + 1))] = weight_scale * np.random.randn(layer_dim, num_classes)
         self.params['b' + str((len(hidden_dims) + 1))] = np.zeros(num_classes)
         ############################################################################
         #                             END OF YOUR CODE                             #
@@ -247,21 +245,15 @@ class FullyConnectedNet(object):
         # layer, etc.                                                              #
         ############################################################################
         L = self.num_layers - 1
-        cache = list()
-        out = list()
+        cache = {}
+        out = X
         for i in range(L):
-            if i == 0:
-                aout, acache = affine_relu_forward(X, self.params['W' + str(i + 1)], self.params['b' + str(i + 1)])
-                out.append(aout)
-                cache.append(acache)
-            else:
-                aout, acache = affine_relu_forward(out[i - 1], self.params['W' + str(i + 1)], self.params['b' + str(i + 1)])
-                out.append(aout)
-                cache.append(acache)
-        bout, bcache = affine_forward(out[len(out) - 1], self.params['W' + str(L + 1)], self.params['b' + str(L + 1)])
-        out.append(bout)
-        cache.append(bcache)
-        scores = bout
+            out, acache = affine_relu_forward(out, self.params['W' + str(i + 1)], self.params['b' + str(i + 1)])
+            cache['W' + str(i + 1)] = acache
+        out, bcache = affine_forward(out, self.params['W' + str(self.num_layers)], self.params['b' + str(self.num_layers)])
+        cache['W' + str(self.num_layers)] = bcache
+        scores = out
+
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -286,23 +278,16 @@ class FullyConnectedNet(object):
         ############################################################################
         loss, dx = softmax_loss(scores, y)
         for i in range(self.num_layers):
-            loss += 0.5 * self.reg * (np.sum(self.params['W' + str(i + 1)] * self.params['W' + str(i + 1)]))
-        dxL, dwL, dbL = affine_backward(dx, cache[len(cache) - 1])
+            loss += 0.5 * self.reg * np.sum(self.params['W' + str(i + 1)] * self.params['W' + str(i + 1)])
+        dxL, dwL, dbL = affine_backward(dx, cache['W' + str(self.num_layers)])
         grads['W' + str(self.num_layers)] = dwL + self.reg * self.params['W' + str(self.num_layers)]
         grads['b' + str(self.num_layers)] = dbL
-        recorder = None
+        recorder = dxL
         for i in range(len(cache) - 2, -1, -1):
-            if i == (len(cache) - 2):
-                dxt, dwt, dbt = affine_relu_backward(dxL, cache[i])
-                recorder = dxt
-                grads['W' + str(i + 1)] = dwt + self.reg * self.params['W' + str(i + 1)]
-                grads['b' + str(i + 1)] = dbt
-            else:
-                dxt, dwt, dbt = affine_relu_backward(recorder, cache[i])
-                recorder = dxt
-                grads['W' + str(i + 1)] = dwt + self.reg * self.params['W' + str(i + 1)]
-                grads['b' + str(i + 1)] = dbt
-        
+            dxt, dwt, dbt = affine_relu_backward(recorder, cache['W' + str(i + 1)])
+            grads['W' + str(i + 1)] = dwt + self.reg * self.params['W' + str(i + 1)]
+            grads['b' + str(i + 1)] = dbt
+            recorder = dxt
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
