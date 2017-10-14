@@ -184,6 +184,9 @@ class FullyConnectedNet(object):
         for i in range(len(hidden_dims)):
             self.params['W' + str((i+1))] = weight_scale * np.random.randn(layer_dim, hidden_dims[i])
             self.params['b' + str((i+1))] = np.zeros(hidden_dims[i])
+            if self.use_batchnorm:
+                self.params['gamma' + str(i + 1)] = np.ones(hidden_dims[i])
+                self.params['beta' + str(i + 1)] =  np.zeros(hidden_dims[i])
             layer_dim = hidden_dims[i]
         self.params['W' + str((len(hidden_dims) + 1))] = weight_scale * np.random.randn(layer_dim, num_classes)
         self.params['b' + str((len(hidden_dims) + 1))] = np.zeros(num_classes)
@@ -246,9 +249,19 @@ class FullyConnectedNet(object):
         ############################################################################
         L = self.num_layers - 1
         cache = {}
+        dp_cache = {}
         out = X
         for i in range(L):
-            out, acache = affine_relu_forward(out, self.params['W' + str(i + 1)], self.params['b' + str(i + 1)])
+            if self.use_batchnorm:
+                out, acache = affine_bn_relu_forward(out, self.params['W' + str(i + 1)], self.params['b' + str(i + 1)], 
+                self.params['gamma' + str(i + 1)], self.params['beta' + str(i + 1)], self.bn_params[i])
+            else:
+                out, acache = affine_relu_forward(out, self.params['W' + str(i + 1)], self.params['b' + str(i + 1)])
+
+            if self.use_dropout:
+                out, dcache = dropout_forward(out, self.dropout_param)
+                dp_cache['W' + str(i + 1)] = dcache
+
             cache['W' + str(i + 1)] = acache
         out, bcache = affine_forward(out, self.params['W' + str(self.num_layers)], self.params['b' + str(self.num_layers)])
         cache['W' + str(self.num_layers)] = bcache
@@ -284,7 +297,15 @@ class FullyConnectedNet(object):
         grads['b' + str(self.num_layers)] = dbL
         recorder = dxL
         for i in range(len(cache) - 2, -1, -1):
-            dxt, dwt, dbt = affine_relu_backward(recorder, cache['W' + str(i + 1)])
+            if self.dropout_param:
+                dxdp = dropout_backward(recorder, dp_cache['W' + str(i + 1)])
+                recorder = dxdp
+            if self.use_batchnorm:
+                dxt, dwt, dbt, dgamma, dbeta = affine_bn_relu_backward(recorder, cache['W' + str(i + 1)])
+                grads['gamma' + str(i + 1)] = dgamma
+                grads['beta' + str(i + 1)] = dbeta
+            else:
+                dxt, dwt, dbt = affine_relu_backward(recorder, cache['W' + str(i + 1)])
             grads['W' + str(i + 1)] = dwt + self.reg * self.params['W' + str(i + 1)]
             grads['b' + str(i + 1)] = dbt
             recorder = dxt
