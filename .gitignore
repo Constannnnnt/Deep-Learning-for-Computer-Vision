@@ -130,3 +130,9 @@ Temporary Items
 
 # ignore the dataset for assignment1
 /assignment1/cs231n/datasets/cifar-10-batches-py/
+/assignment2/cs231n/datasets/cifar-10-batches-py/
+/assignment3/cs231n/datasets/coco_captioning/
+/assignment3/cs231n/datasets/*.npz
+/assignment3/cs231n/datasets/*.index
+/assignment3/cs231n/datasets/*.meta
+/assignment3/cs231n/datasets/*.data-*
