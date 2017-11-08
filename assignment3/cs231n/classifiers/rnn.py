@@ -145,6 +145,8 @@ class CaptioningRNN(object):
         # vanilla RNN or LSTM
         if self.cell_type == 'rnn':
           h, cache_rnn = rnn_forward(word, h0, Wx, Wh, b)
+        elif self.cell_type == 'lstm':
+          h, cache_lstm = lstm_forward(word, h0, Wx, Wh, b)
         else:
           raise ValueError('%s is not implemented yet' % (self.cell_type))
         # use a temporal affine transformaton
@@ -157,6 +159,8 @@ class CaptioningRNN(object):
         dh, dW_vocab, db_vocab = temporal_affine_backward(dscores, cache_scores)
         if self.cell_type == 'rnn':
           dx, dh0, dWx, dWh, db = rnn_backward(dh, cache_rnn)
+        elif self.cell_type == 'lstm':
+          dx, dh0, dWx, dWh, db = lstm_backward(dh, cache_lstm)
         else:
           raise ValueError('%s is not implemented yet' % (self.cell_type))
         dW_embed = word_embedding_backward(dx, cache_embedding)
@@ -236,20 +240,27 @@ class CaptioningRNN(object):
         
         h0 = np.dot(features, W_proj) + b_proj
         prev_h = h0
+        if self.cell_type == 'lstm':
+          prev_c = np.zeros(prev_h.shape)
         captions[:, 0] = self._start
-        # prev_c = np.zeros_like(h0)
         current_word = self._start * np.ones((N, 1), dtype = np.int32)
+
         for t in range(max_length):
           word_embed, cache_embedding = word_embedding_forward(current_word, W_embed)
+
           if self.cell_type == 'rnn':
             h, cache_h = rnn_step_forward(np.squeeze(word_embed), prev_h, Wx, Wh, b)
+          elif self.cell_type == 'lstm':
+            h, c, cache_h = lstm_step_forward(np.squeeze(word_embed), prev_h, prev_c, Wx, Wh, b)
           else:
             raise ValueError('%s is not implemented yet' % (self.cell_type))
+            
           # compute scores
           scores, cache_scores = temporal_affine_forward(h[:, np.newaxis, :], W_vocab, b_vocab)
-          idx = np.squeeze(np.argmax(scores, axis = 2))
-          captions[:, t] = idx
+          captions[:, t] = np.squeeze(np.argmax(scores, axis = 2))
           prev_h = h
+          if self.cell_type == 'lstm':
+            prev_c = c
           current_word = captions[:, t]
         ############################################################################
         #                             END OF YOUR CODE                             #
