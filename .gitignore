@@ -136,3 +136,4 @@ Temporary Items
 /assignment3/cs231n/datasets/*.index
 /assignment3/cs231n/datasets/*.meta
 /assignment3/cs231n/datasets/*.data-*
+/assignment3/cs231n/datasets/MNIST_data/
